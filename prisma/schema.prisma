@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  image     String?
+  clerkId   String?   @unique // <- add this line
+  createdAt DateTime  @default(now())
+  profile   Profile?
+  likes     Like[]
+  comments  Comment[]
+  follows   Follow[]  @relation("FollowerToFollow")
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  handle       String   @unique
+  profession   String
+  city         String
+  region       String
+  country      String
+  rating       Float    @default(0)
+  availability String   @default("Open to work")
+  avatarUrl    String?
+  bannerUrl    String?
+  tags         String[]
+  posts        Post[]
+  followers    Follow[] @relation("ProfileFollowers")
+
+  @@index([profession])
+  @@index([city])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  profileId String
+  profile   Profile   @relation(fields: [profileId], references: [id])
+  imageUrl  String
+  caption   String
+  createdAt DateTime  @default(now())
+  likes     Like[]
+  comments  Comment[]
+}
+
+model Like {
+  id     String @id @default(cuid())
+  postId String
+  userId String
+  post   Post   @relation(fields: [postId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Follow {
+  id          String  @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User    @relation("FollowerToFollow", fields: [followerId], references: [id])
+  following   Profile @relation("ProfileFollowers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
