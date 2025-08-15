@@ -1,7 +1,9 @@
 import Image from "next/image";
+import { absoluteUrl } from "@/lib/absolute-url";
 
 async function getProfile(handle) {
-  const r = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/profiles?q=${encodeURIComponent("@"+handle)}`, { cache: "no-store" });
+  const url = absoluteUrl(`/api/profiles?q=${encodeURIComponent("@"+handle)}`);
+  const r = await fetch(url, { cache: "no-store" });
   const { profiles } = await r.json();
   return profiles[0] || null;
 }
