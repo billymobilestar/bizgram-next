@@ -1,28 +1,32 @@
-// app/api/profile/route.js
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export async function POST(req) {
-  const { userId: clerkId } = auth();
-  if (!clerkId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+export async function GET(req) {            // <-- must be GET
+  const { searchParams } = new URL(req.url);
+  const q = (searchParams.get("q") || "").trim();
+  const profession = searchParams.get("profession");
+  const city = searchParams.get("city");
+  const minRating = Number(searchParams.get("minRating") || 0);
+  const availableOnly = searchParams.get("availableOnly") === "true";
 
-  const body = await req.json();
-  const { handle, profession, city, region, country, avatarUrl } = body;
+  const where = {
+    AND: [
+      q ? {
+        OR: [
+          { handle: { contains: q, mode: "insensitive" } },
+          { profession: { contains: q, mode: "insensitive" } },
+          { city: { contains: q, mode: "insensitive" } },
+          { country: { contains: q, mode: "insensitive" } },
+          { tags: { hasSome: q.toLowerCase().split(/\s+/).filter(Boolean) } },
+        ]
+      } : {},
+      profession ? { profession } : {},
+      city ? { city } : {},
+      minRating ? { rating: { gte: minRating } } : {},
+      availableOnly ? { availability: { contains: "open", mode: "insensitive" } } : {},
+    ],
+  };
 
-  // ensure user exists
-  const user = await prisma.user.upsert({
-    where: { clerkId },
-    update: {},
-    create: { clerkId, email: `${clerkId}@example.local` },
-  });
-
-  // create or update profile
-  const profile = await prisma.profile.upsert({
-    where: { userId: user.id },
-    update: { handle, profession, city, region, country, avatarUrl },
-    create: { userId: user.id, handle, profession, city, region, country, avatarUrl },
-  });
-
-  return NextResponse.json({ ok: true, profile });
+  const profiles = await prisma.profile.findMany({ where, orderBy: [{ rating: "desc" }], take: 50 });
+  return NextResponse.json({ profiles });
 }

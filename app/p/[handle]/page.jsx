@@ -1,9 +1,12 @@
 import Image from "next/image";
 import { absoluteUrl } from "@/lib/absolute-url";
 
+export const dynamic = "force-dynamic";
+
 async function getProfile(handle) {
-  const url = absoluteUrl(`/api/profiles?q=${encodeURIComponent("@"+handle)}`);
+  const url = await absoluteUrl(`/api/profiles?q=${encodeURIComponent("@" + handle)}`);
   const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`profile fetch failed: ${r.status}`);
   const { profiles } = await r.json();
   return profiles[0] || null;
 }

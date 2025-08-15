@@ -1,10 +1,13 @@
-// app/page.jsx
 import Header from "./components/Header";
 import ProfileCard from "./components/ProfileCard";
 import { absoluteUrl } from "@/lib/absolute-url";
 
+export const dynamic = "force-dynamic"; // ensure runtime fetch on Vercel/local
+
 async function getProfiles() {
-  const r = await fetch(absoluteUrl("/api/profiles"), { cache: "no-store" });
+  const url = await absoluteUrl("/api/profiles");   // <-- await here
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`/api/profiles failed: ${r.status}`);
   const { profiles } = await r.json();
   return profiles;
 }
